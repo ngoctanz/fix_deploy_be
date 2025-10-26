@@ -1,0 +1,441 @@
+﻿{
+  "info": {
+    "name": "Game Account Shop API - Complete",
+    "_postman_id": "game-account-complete-2024",
+    "description": "Complete API Collection: Auth, Category, Account, Deposit, Order, User",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"user@example.com\", \"password\": \"user123\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"user@example.com\", \"password\": \"user123\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Game Category",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/game-category",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-category"]
+            }
+          }
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/game-category/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-category", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Category (ADMIN)",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "gameCategoryName",
+                  "value": "Liên Minh Huyền Thoại",
+                  "type": "text"
+                },
+                { "key": "image", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/game-category",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-category"]
+            }
+          }
+        },
+        {
+          "name": "Update Category (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "gameCategoryName",
+                  "value": "League of Legends",
+                  "type": "text"
+                },
+                { "key": "newImage", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/game-category/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-category", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Category (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/game-category/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-category", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Game Account",
+      "item": [
+        {
+          "name": "Get All Accounts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/game-account?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-account"]
+            }
+          }
+        },
+        {
+          "name": "Get Account by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/game-account/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-account", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Account (ADMIN)",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "gameCategoryId", "value": "1", "type": "text" },
+                { "key": "originalPrice", "value": "500000", "type": "text" },
+                { "key": "currentPrice", "value": "350000", "type": "text" },
+                { "key": "mainImage", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/game-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-account"]
+            }
+          }
+        },
+        {
+          "name": "Update Account (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "currentPrice", "value": "300000", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/game-account/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-account", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Account (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/game-account/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-account", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Request Deposit",
+      "item": [
+        {
+          "name": "USER - Create Request",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "amount", "value": "500000", "type": "text" },
+                { "key": "bill", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/request-deposit",
+              "host": ["{{baseUrl}}"],
+              "path": ["request-deposit"]
+            }
+          }
+        },
+        {
+          "name": "USER - Get My Requests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/request-deposit/my-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["request-deposit", "my-requests"]
+            }
+          }
+        },
+        {
+          "name": "ADMIN - Get All Requests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/request-deposit/admin/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["request-deposit", "admin", "all"]
+            }
+          }
+        },
+        {
+          "name": "ADMIN - Approve Request",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"status\": \"approved\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/request-deposit/1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["request-deposit", "1", "status"]
+            }
+          }
+        },
+        {
+          "name": "ADMIN - Add Money",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"userId\": 2, \"amount\": 500000}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/request-deposit/admin/add-money",
+              "host": ["{{baseUrl}}"],
+              "path": ["request-deposit", "admin", "add-money"]
+            }
+          }
+        },
+        {
+          "name": "ADMIN - Delete Request",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/request-deposit/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["request-deposit", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Order Management",
+      "item": [
+        {
+          "name": "USER - Purchase Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"gameAccountId\": 1}" },
+            "url": {
+              "raw": "{{baseUrl}}/order/purchase",
+              "host": ["{{baseUrl}}"],
+              "path": ["order", "purchase"]
+            }
+          }
+        },
+        {
+          "name": "USER - Get My Orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/order/my-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["order", "my-orders"]
+            }
+          }
+        },
+        {
+          "name": "ADMIN - Get All Orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/order/admin/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["order", "admin", "all"]
+            }
+          }
+        },
+        {
+          "name": "Get Order Detail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/order/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["order", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. User Management",
+      "item": [
+        {
+          "name": "ADMIN - Get All Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user/admin/all?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "admin", "all"]
+            }
+          }
+        },
+        {
+          "name": "USER - Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "me"]
+            }
+          }
+        },
+        {
+          "name": "USER - Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"oldPassword\": \"user123\", \"newPassword\": \"newPass123\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "ADMIN - Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "2"]
+            }
+          }
+        },
+        {
+          "name": "ADMIN - Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/user/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "2"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" }
+  ]
+}
