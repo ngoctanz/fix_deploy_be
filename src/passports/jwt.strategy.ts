@@ -1,22 +1,29 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import type { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { envConfig } from '~/config/env.config';
-import { Request } from 'express';
 
+/**
+ * JWT STRATEGY - Hỗ trợ cả cookie và header Bearer
+ *
+ * Cách hoạt động:
+ * 1️⃣ Ưu tiên lấy JWT từ cookie 'accessToken' (bảo mật nhất)
+ * 2️⃣ Nếu cookie không tồn tại (ví dụ Safari iOS), fallback sang Authorization header
+ * 3️⃣ Verify token bằng secret key
+ * 4️⃣ Nếu hợp lệ → trả về payload -> req.user
+ */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private configService: ConfigService) {
+  constructor(private readonly configService: ConfigService) {
     const config = envConfig(configService);
 
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        // 1. Lấy từ cookie (desktop)
-        (request: Request) => {
-          return request?.cookies?.['accessToken'] || null;
-        },
-        // 2. Lấy từ Authorization header (iPhone/mobile)
+        // 1️⃣ Lấy từ cookie
+        (req: Request) => req?.cookies?.accessToken,
+        // 2️⃣ Fallback: lấy từ header Authorization: Bearer <token>
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: false,
@@ -25,8 +32,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    if (!payload) {
-      throw new UnauthorizedException('Invalid token');
+    // payload = { sub, email, money, role, iat, exp }
+    if (!payload?.sub) {
+      throw new UnauthorizedException('Invalid token payload');
     }
 
     return {

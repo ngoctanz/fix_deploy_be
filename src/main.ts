@@ -37,7 +37,6 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Cho phép requests không có origin (như từ Postman, mobile apps, curl)
       if (!origin) {
         callback(null, true);
         return;
@@ -50,7 +49,7 @@ async function bootstrap() {
         callback(new Error(`Not allowed by CORS: ${origin}`));
       }
     },
-    credentials: true, // BẮT BUỘC để cookies hoạt động
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     exposedHeaders: ['Set-Cookie'],
