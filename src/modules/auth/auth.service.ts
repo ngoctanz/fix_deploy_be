@@ -98,8 +98,6 @@ export class AuthService {
       userAgent: response.req?.headers['user-agent'],
     });
 
-    // QUAN TRỌNG: Trả về tokens trong response body làm fallback
-    // Frontend sẽ lưu vào localStorage nếu cookies không hoạt động
     return {
       message: 'Login successful',
       tokens: {

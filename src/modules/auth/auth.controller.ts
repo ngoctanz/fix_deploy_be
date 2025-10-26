@@ -19,15 +19,21 @@ import express from 'express';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // 🔹 REGISTER
   @Post('/register')
   async register(
     @Body() registerDto: RegisterDto,
     @Res({ passthrough: true }) response: express.Response,
   ) {
     const result = await this.authService.register(registerDto, response);
-    return new ResponseData(HttpStatus.OK, result.message, null);
+
+    // ✅ Trả tokens để frontend lưu localStorage nếu cookie bị chặn
+    return new ResponseData(HttpStatus.OK, result.message, {
+      tokens: result.tokens,
+    });
   }
 
+  // 🔹 LOGIN
   @UseGuards(LocalAuthGuard)
   @Post('/login')
   async login(
@@ -35,30 +41,33 @@ export class AuthController {
     @Res({ passthrough: true }) response: express.Response,
   ) {
     const result = await this.authService.login(req.user, response);
-    return new ResponseData(HttpStatus.OK, result.message, null);
+
+    // ✅ Trả tokens để FE fallback localStorage nếu Safari chặn cookie
+    return new ResponseData(HttpStatus.OK, result.message, {
+      tokens: result.tokens,
+    });
   }
 
+  // 🔹 PROFILE
   @UseGuards(JwtAuthGuard)
   @Get('/profile')
   async getProfile(@Req() req: express.Request & { user: any }) {
     const userId = req.user.userId;
     const user = await this.authService.getUserById(userId);
+
     if (!user) {
       return new ResponseData(HttpStatus.NOT_FOUND, 'User not found', null);
     }
-    const profileData = {
+
+    return new ResponseData(HttpStatus.OK, 'Profile retrieved successfully', {
       userId: user.userId,
       email: user.email,
       money: user.money,
       role: user.role,
-    };
-    return new ResponseData(
-      HttpStatus.OK,
-      'Profile retrieved successfully',
-      profileData,
-    );
+    });
   }
 
+  // 🔹 REFRESH TOKEN
   @Post('/refresh')
   async refreshToken(
     @Req() req: express.Request,
@@ -69,9 +78,14 @@ export class AuthController {
       refreshToken,
       response,
     );
-    return new ResponseData(HttpStatus.OK, result.message, null);
+
+    // ✅ Nếu refresh thành công, FE có thể cập nhật token fallback
+    return new ResponseData(HttpStatus.OK, result.message, {
+      tokens: { accessToken: result.accessToken },
+    });
   }
 
+  // 🔹 LOGOUT
   @UseGuards(JwtAuthGuard)
   @Post('/logout')
   async logout(
