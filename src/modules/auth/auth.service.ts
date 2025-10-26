@@ -18,20 +18,14 @@ export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
 
   /**
    * ĐĂNG KÝ USER MỚI
-   * - Kiểm tra email đã tồn tại chưa
-   * - Hash password bằng bcrypt (10 rounds)
-   * - Tạo user mới trong database
-   * - Tự động đăng nhập (generate tokens)
    */
   async register(registerDto: RegisterDto, response: Response) {
-    // Kiểm tra email đã tồn tại
     const existingUser = await this.userRepository.findOne({
       where: { email: registerDto.email },
     });
@@ -40,10 +34,8 @@ export class AuthService {
       throw new ConflictException('Email already in use');
     }
 
-    // Hash password với bcrypt (10 salt rounds)
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-    // Tạo user mới
     const newUser = this.userRepository.create({
       email: registerDto.email,
       password: hashedPassword,
@@ -53,53 +45,60 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(newUser);
 
-    // Tự động login sau khi đăng ký
     return this.login(savedUser, response);
   }
 
+  /**
+   * LOGIN
+   */
   async login(user: UserEntity, response: Response) {
     const config = envConfig(this.configService);
 
-    // Payload chứa thông tin user trong token
     const payload = {
-      sub: user.userId, // 'sub' là convention của JWT cho user ID
+      sub: user.userId,
       email: user.email,
       money: user.money,
       role: user.role,
     };
 
-    // Tạo Access Token (thời hạn ngắn: 30 phút)
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: config.jwt.accessSecret,
       expiresIn: config.jwt.accessExpiration,
     } as any);
 
-    // Tạo Refresh Token (thời hạn dài: 7 ngày)
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: config.jwt.refreshSecret,
       expiresIn: config.jwt.refreshExpiration,
     } as any);
 
-    // Hash refresh token trước khi lưu vào DB (bảo mật)
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
-    // Lưu hashed refresh token vào DB
     await this.userRepository.update(user.userId, {
       refreshToken: hashedRefreshToken,
     });
 
-    response.cookie('accessToken', accessToken, {
-      httpOnly: true, // Không thể truy cập từ JavaScript (chống XSS)
+    // Cookie options nhất quán cho tất cả cookies
+    const cookieOptions = {
+      httpOnly: true,
       secure: config.cookie.secure,
-      sameSite: config.cookie.sameSite,
+      sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
+      path: '/',
+    };
+
+    response.cookie('accessToken', accessToken, {
+      ...cookieOptions,
       maxAge: config.cookie.accessMaxAge,
     });
 
     response.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
+      ...cookieOptions,
+      maxAge: config.cookie.refreshMaxAge,
+    });
+
+    console.log('🍪 Cookie set with config:', {
       secure: config.cookie.secure,
       sameSite: config.cookie.sameSite,
-      maxAge: config.cookie.refreshMaxAge,
+      nodeEnv: config.app.nodeEnv,
     });
 
     return {
@@ -108,16 +107,14 @@ export class AuthService {
   }
 
   /**
-   * Lấy user theo userId
+   * GET USER BY ID
    */
   async getUserById(userId: number): Promise<UserEntity | null> {
     return await this.userRepository.findOne({ where: { userId } });
   }
 
   /**
-   * VALIDATE USER (dùng cho Local Strategy)
-   * - Tìm user theo email
-   * - So sánh password với hash trong DB
+   * VALIDATE USER (Local Strategy)
    */
   async validateUser({ email, password }: { email: string; password: string }) {
     const user = await this.userRepository.findOne({
@@ -128,7 +125,6 @@ export class AuthService {
       return null;
     }
 
-    // So sánh password với hash trong DB
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (isPasswordValid) {
@@ -140,10 +136,6 @@ export class AuthService {
 
   /**
    * REFRESH ACCESS TOKEN
-   * - Lấy refreshToken từ cookie
-   * - Verify refreshToken
-   * - Kiểm tra refreshToken có khớp với hash trong DB không
-   * - Tạo accessToken mới
    */
   async refreshAccessToken(refreshToken: string, response: Response) {
     const config = envConfig(this.configService);
@@ -153,12 +145,10 @@ export class AuthService {
     }
 
     try {
-      // Verify refresh token
       const payload = this.jwtService.verify(refreshToken, {
         secret: config.jwt.refreshSecret,
       });
 
-      // Tìm user trong DB
       const user = await this.userRepository.findOne({
         where: { userId: payload.sub },
       });
@@ -176,7 +166,6 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      // Tạo access token mới
       const newPayload = {
         sub: user.userId,
         email: user.email,
@@ -189,11 +178,11 @@ export class AuthService {
         expiresIn: config.jwt.accessExpiration,
       } as any);
 
-      // Set access token mới vào cookie
       response.cookie('accessToken', newAccessToken, {
         httpOnly: true,
         secure: config.cookie.secure,
-        sameSite: config.cookie.sameSite,
+        sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
+        path: '/',
         maxAge: config.cookie.accessMaxAge,
       });
 
@@ -201,20 +190,32 @@ export class AuthService {
         message: 'Refresh token successful',
       };
     } catch (error) {
-      throw new UnauthorizedException(
-        error + 'Invalid or expired refresh token',
-      );
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
 
+  /**
+   * LOGOUT
+   */
   async logout(userId: number, response: Response) {
-    // Xóa refresh token trong DB
+    const config = envConfig(this.configService);
+
     await this.userRepository.update(userId, {
       refreshToken: null,
     });
 
-    response.clearCookie('accessToken');
-    response.clearCookie('refreshToken');
+    // QUAN TRỌNG: clearCookie phải có ĐÚNG options như lúc set
+    const cookieOptions = {
+      httpOnly: true,
+      secure: config.cookie.secure,
+      sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
+      path: '/',
+    };
+
+    response.clearCookie('accessToken', cookieOptions);
+    response.clearCookie('refreshToken', cookieOptions);
+
+    console.log('🗑️ Cookies cleared with config:', cookieOptions);
 
     return {
       message: 'Logout successful',
