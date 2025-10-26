@@ -66,19 +66,20 @@ export class AuthController {
     });
   }
 
-  // 🔹 REFRESH TOKEN
   @Post('/refresh')
   async refreshToken(
     @Req() req: express.Request,
     @Res({ passthrough: true }) response: express.Response,
   ) {
-    const refreshToken = req.cookies?.refreshToken;
+    const refreshToken =
+      req.cookies?.refreshToken ||
+      req.headers['authorization']?.replace('Bearer ', '');
+
     const result = await this.authService.refreshAccessToken(
       refreshToken,
       response,
     );
 
-    // ✅ Nếu refresh thành công, FE có thể cập nhật token fallback
     return new ResponseData(HttpStatus.OK, result.message, {
       tokens: { accessToken: result.accessToken },
     });
