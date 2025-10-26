@@ -22,9 +22,6 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  /**
-   * ĐĂNG KÝ USER MỚI
-   */
   async register(registerDto: RegisterDto, response: Response) {
     const existingUser = await this.userRepository.findOne({
       where: { email: registerDto.email },
@@ -48,9 +45,6 @@ export class AuthService {
     return this.login(savedUser, response);
   }
 
-  /**
-   * LOGIN
-   */
   async login(user: UserEntity, response: Response) {
     const config = envConfig(this.configService);
 
@@ -77,12 +71,14 @@ export class AuthService {
       refreshToken: hashedRefreshToken,
     });
 
-    // Cookie options nhất quán cho tất cả cookies
+    // Cookie options với Partitioned attribute cho iPhone Safari
     const cookieOptions = {
       httpOnly: true,
       secure: config.cookie.secure,
       sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
       path: '/',
+      // Thêm Partitioned cho Safari (CHIPS - Cookies Having Independent Partitioned State)
+      partitioned: true,
     };
 
     response.cookie('accessToken', accessToken, {
@@ -95,27 +91,28 @@ export class AuthService {
       maxAge: config.cookie.refreshMaxAge,
     });
 
-    console.log('🍪 Cookie set with config:', {
+    console.log('🍪 Cookie Config:', {
       secure: config.cookie.secure,
       sameSite: config.cookie.sameSite,
-      nodeEnv: config.app.nodeEnv,
+      partitioned: true,
+      userAgent: response.req?.headers['user-agent'],
     });
 
+    // QUAN TRỌNG: Trả về tokens trong response body làm fallback
+    // Frontend sẽ lưu vào localStorage nếu cookies không hoạt động
     return {
       message: 'Login successful',
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
     };
   }
 
-  /**
-   * GET USER BY ID
-   */
   async getUserById(userId: number): Promise<UserEntity | null> {
     return await this.userRepository.findOne({ where: { userId } });
   }
 
-  /**
-   * VALIDATE USER (Local Strategy)
-   */
   async validateUser({ email, password }: { email: string; password: string }) {
     const user = await this.userRepository.findOne({
       where: { email },
@@ -134,9 +131,6 @@ export class AuthService {
     return null;
   }
 
-  /**
-   * REFRESH ACCESS TOKEN
-   */
   async refreshAccessToken(refreshToken: string, response: Response) {
     const config = envConfig(this.configService);
 
@@ -183,20 +177,19 @@ export class AuthService {
         secure: config.cookie.secure,
         sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
         path: '/',
+        partitioned: true,
         maxAge: config.cookie.accessMaxAge,
       });
 
       return {
         message: 'Refresh token successful',
+        accessToken: newAccessToken, // Trả về trong body làm fallback
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
 
-  /**
-   * LOGOUT
-   */
   async logout(userId: number, response: Response) {
     const config = envConfig(this.configService);
 
@@ -204,18 +197,18 @@ export class AuthService {
       refreshToken: null,
     });
 
-    // QUAN TRỌNG: clearCookie phải có ĐÚNG options như lúc set
     const cookieOptions = {
       httpOnly: true,
       secure: config.cookie.secure,
       sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
       path: '/',
+      partitioned: true,
     };
 
     response.clearCookie('accessToken', cookieOptions);
     response.clearCookie('refreshToken', cookieOptions);
 
-    console.log('🗑️ Cookies cleared with config:', cookieOptions);
+    console.log('🗑️ Cookies cleared');
 
     return {
       message: 'Logout successful',
