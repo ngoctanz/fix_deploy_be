@@ -27,7 +27,6 @@ export class AuthController {
   ) {
     const result = await this.authService.register(registerDto, response);
 
-    // ✅ Trả tokens để frontend lưu localStorage nếu cookie bị chặn
     return new ResponseData(HttpStatus.OK, result.message, {
       tokens: result.tokens,
     });

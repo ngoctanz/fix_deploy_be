@@ -6,7 +6,7 @@ import {
   Min,
   IsArray,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class UpdateGameAccountDto {
   @IsOptional()
@@ -16,13 +16,13 @@ export class UpdateGameAccountDto {
 
   @IsOptional()
   @IsNumber({}, { message: 'Original price must be a number' })
-  @Min(0, { message: 'Original price must be greater than or equal to 0' })
+  @Min(0, { message: 'Original price must be >= 0' })
   @Type(() => Number)
   originalPrice?: number;
 
   @IsOptional()
   @IsNumber({}, { message: 'Current price must be a number' })
-  @Min(0, { message: 'Current price must be greater than or equal to 0' })
+  @Min(0, { message: 'Current price must be >= 0' })
   @Type(() => Number)
   currentPrice?: number;
 
@@ -32,23 +32,29 @@ export class UpdateGameAccountDto {
 
   @IsOptional()
   @IsEnum(['available', 'sold', 'reserved'], {
-    message: 'Status must be: available, sold, or reserved',
+    message: 'Status must be one of: available, sold, reserved',
   })
   status?: 'available' | 'sold' | 'reserved';
 
   @IsOptional()
   @IsEnum(['VIP', 'Normal'], {
-    message: 'Account type must be: VIP or Normal',
+    message: 'Account type must be one of: VIP, Normal',
   })
   typeAccount?: 'VIP' | 'Normal';
 
-  /**
-   * List of image IDs to delete
-   * Frontend sends array of imageIds to delete during update
-   */
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed.map((v) => Number(v));
+      } catch {
+        return [];
+      }
+    }
+    return value;
+  })
   @IsArray({ message: 'deleteImageIds must be an array' })
   @IsNumber({}, { each: true, message: 'Each imageId must be a number' })
-  @Type(() => Number)
   deleteImageIds?: number[];
 }
