@@ -1,50 +1,36 @@
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Injectable } from '@nestjs/common';
-import type { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { envConfig } from '~/config/env.config';
+import { Request } from 'express';
 
-/**
- * JWT STRATEGY - Xử lý authentication với JWT
- *
- * CÁCH HOẠT ĐỘNG:
- * 1. Khi client gửi request với JWT (trong cookie hoặc header)
- * 2. Strategy này sẽ extract JWT từ cookie 'accessToken'
- * 3. Verify JWT với secret key
- * 4. Nếu valid, gọi hàm validate() với decoded payload
- * 5. Return value của validate() sẽ được gán vào req.user
- * 6. Controller có thể access thông tin user qua req.user
- */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly configService: ConfigService) {
+  constructor(private configService: ConfigService) {
     const config = envConfig(configService);
 
     super({
-      // Extract JWT từ cookie thay vì Authorization header
       jwtFromRequest: ExtractJwt.fromExtractors([
+        // 1. Lấy từ cookie (desktop)
         (request: Request) => {
-          // Lấy token từ cookie 'accessToken'
-          return request?.cookies?.accessToken;
+          return request?.cookies?.['accessToken'] || null;
         },
-        // Fallback: nếu không có trong cookie, lấy từ Authorization header
+        // 2. Lấy từ Authorization header (iPhone/mobile)
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
-      ignoreExpiration: false, // Reject token đã hết hạn
+      ignoreExpiration: false,
       secretOrKey: config.jwt.accessSecret,
     });
   }
 
-  /**
-   * Hàm validate tự động được gọi sau khi JWT được verify thành công
-   * @param payload - Decoded JWT payload chứa thông tin user
-   * @returns Object sẽ được gán vào req.user
-   */
   async validate(payload: any) {
-    // payload chứa: { sub: userId, email, money, role, iat, exp }
+    if (!payload) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
     return {
-      userId: payload.sub, // 'sub' là user ID
+      userId: payload.sub,
       email: payload.email,
       money: payload.money,
       role: payload.role,

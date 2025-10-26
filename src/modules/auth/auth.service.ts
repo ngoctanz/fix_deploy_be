@@ -32,7 +32,6 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-
     const newUser = this.userRepository.create({
       email: registerDto.email,
       password: hashedPassword,
@@ -41,7 +40,6 @@ export class AuthService {
     });
 
     const savedUser = await this.userRepository.save(newUser);
-
     return this.login(savedUser, response);
   }
 
@@ -66,19 +64,16 @@ export class AuthService {
     } as any);
 
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-
     await this.userRepository.update(user.userId, {
       refreshToken: hashedRefreshToken,
     });
 
-    // Cookie options với Partitioned attribute cho iPhone Safari
+    // Set cookies (cho desktop browsers)
     const cookieOptions = {
       httpOnly: true,
       secure: config.cookie.secure,
       sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
       path: '/',
-      // Thêm Partitioned cho Safari (CHIPS - Cookies Having Independent Partitioned State)
-      partitioned: true,
     };
 
     response.cookie('accessToken', accessToken, {
@@ -91,15 +86,7 @@ export class AuthService {
       maxAge: config.cookie.refreshMaxAge,
     });
 
-    console.log('🍪 Cookie Config:', {
-      secure: config.cookie.secure,
-      sameSite: config.cookie.sameSite,
-      partitioned: true,
-      userAgent: response.req?.headers['user-agent'],
-    });
-
-    // QUAN TRỌNG: Trả về tokens trong response body làm fallback
-    // Frontend sẽ lưu vào localStorage nếu cookies không hoạt động
+    // Trả tokens trong body (cho iPhone/mobile fallback)
     return {
       message: 'Login successful',
       tokens: {
@@ -114,21 +101,11 @@ export class AuthService {
   }
 
   async validateUser({ email, password }: { email: string; password: string }) {
-    const user = await this.userRepository.findOne({
-      where: { email },
-    });
-
-    if (!user) {
-      return null;
-    }
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) return null;
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (isPasswordValid) {
-      return user;
-    }
-
-    return null;
+    return isPasswordValid ? user : null;
   }
 
   async refreshAccessToken(refreshToken: string, response: Response) {
@@ -172,18 +149,19 @@ export class AuthService {
         expiresIn: config.jwt.accessExpiration,
       } as any);
 
+      // Set cookie mới
       response.cookie('accessToken', newAccessToken, {
         httpOnly: true,
         secure: config.cookie.secure,
         sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
         path: '/',
-        partitioned: true,
         maxAge: config.cookie.accessMaxAge,
       });
 
+      // Trả token trong body
       return {
         message: 'Refresh token successful',
-        accessToken: newAccessToken, // Trả về trong body làm fallback
+        accessToken: newAccessToken,
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired refresh token');
@@ -202,16 +180,11 @@ export class AuthService {
       secure: config.cookie.secure,
       sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
       path: '/',
-      partitioned: true,
     };
 
     response.clearCookie('accessToken', cookieOptions);
     response.clearCookie('refreshToken', cookieOptions);
 
-    console.log('🗑️ Cookies cleared');
-
-    return {
-      message: 'Logout successful',
-    };
+    return { message: 'Logout successful' };
   }
 }
