@@ -81,7 +81,10 @@ export class AuthController {
     );
 
     return new ResponseData(HttpStatus.OK, result.message, {
-      tokens: { accessToken: result.accessToken },
+      tokens: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      },
     });
   }
 

@@ -170,18 +170,40 @@ export class AuthService {
         expiresIn: config.jwt.accessExpiration,
       } as any);
 
-      response.cookie('accessToken', newAccessToken, {
+      const newRefreshToken = await this.jwtService.signAsync(newPayload, {
+        secret: config.jwt.refreshSecret,
+        expiresIn: config.jwt.refreshExpiration,
+      } as any);
+
+      // Hash refreshToken mới và lưu DB
+      const hashedRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+      await this.userRepository.update(user.userId, {
+        refreshToken: hashedRefreshToken,
+      });
+
+      // Ghi lại cookie
+      const cookieOptions = {
         httpOnly: true,
         secure: config.cookie.secure,
         sameSite: config.cookie.sameSite as 'lax' | 'strict' | 'none',
         path: '/',
         partitioned: true,
+      };
+
+      response.cookie('accessToken', newAccessToken, {
+        ...cookieOptions,
         maxAge: config.cookie.accessMaxAge,
+      });
+
+      response.cookie('refreshToken', newRefreshToken, {
+        ...cookieOptions,
+        maxAge: config.cookie.refreshMaxAge,
       });
 
       return {
         message: 'Refresh token successful',
-        accessToken: newAccessToken, // Trả về trong body làm fallback
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired refresh token');
